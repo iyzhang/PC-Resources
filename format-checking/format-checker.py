@@ -4,7 +4,7 @@
 #          Jay Lorch <jaylorch@gmail.com>
 # Released into the public domain.
 
-from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2 import PdfWriter, PdfReader
 import argparse
 import csv
 import io
@@ -59,8 +59,8 @@ class FormatChecker:
 
     def run(self):
         self.ensure_directory_exists()
-        self.blue_stencil_pdf = PdfFileReader(open("blue_stencil.pdf", "rb"))
-        self.red_stencil_pdf = PdfFileReader(open("red_stencil.pdf", "rb"))
+        self.blue_stencil_pdf = PdfReader(open("blue_stencil.pdf", "rb"))
+        self.red_stencil_pdf = PdfReader(open("red_stencil.pdf", "rb"))
         self.apply_to_zip()
 
     def ensure_directory_exists(self):
@@ -69,25 +69,25 @@ class FormatChecker:
                 os.mkdir(self.output_prefix)
 
     def apply_stencil(self, target_stream, all_papers_stenciled):
-        target_pdf = PdfFileReader(target_stream)
-        page_count = target_pdf.getNumPages()
+        target_pdf = PdfReader(target_stream)
+        page_count = len(target_pdf.pages)
         for page_num,stencil_pdf in (
             (0, self.blue_stencil_pdf),
             (self.page_limit - 1, self.blue_stencil_pdf),
             (self.page_limit, self.red_stencil_pdf)):
             if page_num >= page_count:
                 continue
-            input_page = target_pdf.getPage(page_num)
-            input_page.mergePage(stencil_pdf.getPage(0))
-            all_papers_stenciled.addPage(input_page)
+            input_page = target_pdf.pages[page_num]
+            input_page.merge_page(stencil_pdf.pages[0])
+            all_papers_stenciled.add_page(input_page)
 
     def apply_stencil_one(self, target_stream, output_name):
-        output_pdf = PdfFileWriter()
+        output_pdf = PdfWriter()
         self.apply_stencil(target_stream, output_pdf)
         output_pdf.write(open(output_name, "wb"))
 
     def collect_first_page(self, target_stream, all_first_pages):
-        target_pdf = PdfFileReader(target_stream)
+        target_pdf = PdfReader(target_stream)
         input_page = target_pdf.getPage(0)
         all_first_pages.addPage(input_page)
 
@@ -98,8 +98,8 @@ class FormatChecker:
             sys.exit(-1)
 
         zf = zipfile.ZipFile(infile_name, 'r')
-        all_papers_stenciled = PdfFileWriter()
-        all_first_pages = PdfFileWriter()
+        all_papers_stenciled = PdfWriter()
+        all_first_pages = PdfWriter()
         for name in zf.namelist():
             mo = re.search("(\d+)\.pdf", name)
             if mo:
